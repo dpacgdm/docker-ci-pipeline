@@ -1,7 +1,7 @@
 # --- STAGE 1: The "Builder" Stage ---
 # Instructions are in ALL CAPS.
 # The 'as builder' part names this stage. This is critical.
-FROM python:3.9-alpine AS builder
+FROM python:3.11-alpine AS builder
 
 WORKDIR /app
 

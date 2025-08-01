@@ -30,4 +30,4 @@ jobs:
           image-ref: 'dpacgdm/my-secure-app:${{ github.sha }}'
           format: 'table'
           severity: 'HIGH,CRITICAL'
-          exit-code: '0'
+          exit-code: '1'
