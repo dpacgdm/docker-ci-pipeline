@@ -1,33 +1,79 @@
-name: "Docker Build and Scan"
+name: "Optimized Docker Build and Scan"
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  build-and-scan:
+  # --- JOB 1: Build the Docker Image ---
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v3
 
+      # This is the new Caching step
+      - name: "Cache Pip dependencies"
+        uses: actions/cache@v3
+        with:
+          # YOUR PARAMETERS HERE
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+          
+      - name: "Set up Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: "Install dependencies"
+        run: pip install -r requirements.txt
+        
       - name: "Login to Docker Hub"
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: "Build Docker image"
+      - name: "Build and save Docker image"
         uses: docker/build-push-action@v4
         with:
-          tags: dpacgdm/my-secure-app:${{ github.sha }}
+          tags: dpacgdm/my-secure-app:latest
+          # We will output the image as a local file.
+          outputs: type=docker,dest=image.tar
           push: false
-          load: true
+
+      # This is the new Artifact Upload step
+      - name: "Upload image artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          # YOUR PARAMETERS HERE
+          name: docker-image
+          path: image.tar
+
+  # --- JOB 2: Scan the Docker Image ---
+  scan:
+    # This job will only start after the 'build' job has successfully completed.
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # This is the new Artifact Download step
+      - name: "Download image artifact"
+        uses: actions/download-artifact@v3
+        with:
+          # YOUR PARAMETERS HERE
+          name: docker-image
+
+      - name: "Load image for scanning"
+        # We must load the .tar file back into the local Docker engine.
+        run: docker load --input image.tar
 
       - name: "Scan image with Trivy"
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'dpacgdm/my-secure-app:${{ github.sha }}'
+          # The image-ref must match the tag used in the build job.
+          image-ref: 'dpacgdm/my-secure-app:latest'
           format: 'table'
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
