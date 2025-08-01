@@ -3,6 +3,8 @@
 # The 'as builder' part names this stage. This is critical.
 FROM python:3.11-alpine AS builder
 
+RUN apk update && apk upgrade
+
 WORKDIR /app
 
 # Copying requirements first for cache optimization.
