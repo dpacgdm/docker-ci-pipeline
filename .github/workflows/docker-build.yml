@@ -47,6 +47,9 @@ jobs:
           outputs: type=docker,dest=image.tar
           push: false
 
+          cache-from: type=gha
+          cache-to: type=gha, mode=max
+
       # This is the new Artifact Upload step
       - name: "Upload image artifact"
         uses: actions/upload-artifact@v4
